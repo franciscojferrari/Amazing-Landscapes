@@ -60,13 +60,19 @@ class DataWriter:
         # Process original img
         img_original = load_img(original_img_path)
         img_original = tf.image.resize(
-            img_original, [self.img_height, self.img_width], "nearest"
+            img_original,
+            size=[self.img_height, self.img_width],
+            method="nearest",
+            preserve_aspect_ratio=self.config["preserve_aspect_ratio"],
         )
 
         # Process masked img
         img_masked = load_img(masked_img_path)
         img_masked = tf.image.resize(
-            img_masked, [self.img_height, self.img_width], "nearest"
+            img_masked,
+            size=[self.img_height, self.img_width],
+            method="nearest",
+            preserve_aspect_ratio=self.config["preserve_aspect_ratio"],
         )
 
         return img_original, img_masked, label
