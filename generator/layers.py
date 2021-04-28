@@ -39,14 +39,14 @@ class SpadeResidualBlock(tfkl.Layer):
 
         self.spade0 = Spade(name = f"{name}_spade0", n_out_filter = n_input_filter)
 
-        self.conv0 = tfa.layers.SpectralNormalization(tfkl.Conv2D(n_out_filter, 3))
+        self.conv0 = tfa.layers.SpectralNormalization(tfkl.Conv2D(n_out_filter, 3, padding = "same"))
 
         self.spade1 = Spade(name = f"{name}_spade1", n_out_filter = n_out_filter)
-        self.conv1 = tfa.layers.SpectralNormalization(tfkl.Conv2D(n_out_filter, 3))
+        self.conv1 = tfa.layers.SpectralNormalization(tfkl.Conv2D(n_out_filter, 3, padding = "same"))
 
         if self.learned_shortcut:
             self.spade_skip = Spade(name = f"{name}_spade1", n_out_filter = n_input_filter)
-            self.conv_skip = tfa.layers.SpectralNormalization(tfkl.Conv2D(n_out_filter, 3))
+            self.conv_skip = tfa.layers.SpectralNormalization(tfkl.Conv2D(n_out_filter, 3, padding = "same"))
 
     def call(self, features, *args, **kwargs):
         mask = kwargs.get("mask", args[0] if args else None)
