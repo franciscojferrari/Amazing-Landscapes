@@ -25,7 +25,7 @@ class DataWriter:
         file_dataset = build_file_dataset(file_names)
 
         # Apply the processing function to the files
-        self.processed_files = transform_files(file_dataset, self.process_files)
+        self.processed_files = transform_files(file_dataset, self.load_and_downsample)
 
     def write_files(self) -> None:
         start_time = time.time()
@@ -46,7 +46,7 @@ class DataWriter:
 
         print(f"Finished writing files in:  {time.time() - start_time}s")
 
-    def process_files(self, file_path: tf.Tensor) -> [tf.Tensor, tf.Tensor, str]:
+    def load_and_downsample(self, file_path: tf.Tensor) -> [tf.Tensor, tf.Tensor, str]:
         """Load image file from disk and perform downsampling"""
 
         file_path = file_path.numpy().decode("utf-8")
