@@ -16,14 +16,18 @@ class Spade(tfkl.Layer):
         self.conv2 = tfa.layers.SpectralNormalization(tfkl.Conv2D(n_out_filter, 3))
 
     def call(self, *args, **kwargs):
-        features = kwargs("features", args[0])
+        features = kwargs.get("features", args[0])
         mask = kwargs.get("mask", args[1])
 
-        size = features.size()[-2:]
-        mask = tfa.image.transform(mask, output_shape = size, interpolation = "nearest")
+        size = features.shape[-2:]
+        mask = tf.image.resize(mask, size, method = "nearest")
         interim_conv = self.conv0(mask)
         gamma = self.conv1(interim_conv)
         beta = self.conv2(interim_conv)
+
+        print("features", self.bn(features).shape)
+        print("gamma", gamma.shape)
+        print("beta", beta.shape)
         return ((self.bn(features) * gamma) + beta)
 
 
@@ -49,7 +53,7 @@ class SpadeResidualBlock(tfkl.Layer):
             self.conv_skip = tfa.layers.SpectralNormalization(tfkl.Conv2D(n_out_filter, 3))
 
     def call(self, *args, **kwargs):
-        features = kwargs("features", args[0])
+        features = kwargs.get("features", args[0])
         mask = kwargs.get("mask", args[1])
 
         skip_features = features
