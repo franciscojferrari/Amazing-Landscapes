@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-from layers import SpadeResidualBlock
+from .layers import SpadeResidualBlock
 
 # import tensorflow_addons as tfa
 
@@ -9,26 +9,23 @@ tfkl = tfk.layers
 
 
 class SpadeGenerator(tfkl.Layer):
-    def __init__(self, name, **kwargs):
-        super(SpadeGenerator).__init__(name = name, **kwargs)
-        self.input_noise_dim = kwargs.get("input_noise_dim", None)
-        self.output_dim = kwargs.get("output_dim", None)
-        self.batch_size = kwargs.get("batch_size", None)
-        self.image_size = kwargs.get("image_size", (None, None))  # This should be images size
+    def __init__(self, name, image_size, **kwargs):
+        super(SpadeGenerator, self).__init__(name = name, **kwargs)
 
+        self.image_size = image_size
         self.sw, self.sh = self.compute_latent_vector_size()
         self.z_dim = 256
         self.nf = 64
 
         self.linear_layer_0 = tfkl.Dense(16 * self.nf * self.sw * self.sh)
 
-        self.spade_0 = SpadeResidualBlock(16 * self.nf, 16 * self.nf)
-        self.spade_1 = SpadeResidualBlock(16 * self.nf, 16 * self.nf)
-        self.spade_2 = SpadeResidualBlock(16 * self.nf, 16 * self.nf)
-        self.spade_3 = SpadeResidualBlock(16 * self.nf, 8 * self.nf)
-        self.spade_4 = SpadeResidualBlock(8 * self.nf, 4 * self.nf)
-        self.spade_5 = SpadeResidualBlock(4 * self.nf, 2 * self.nf)
-        self.spade_6 = SpadeResidualBlock(2 * self.nf, 1 * self.nf)
+        self.spade_0 = SpadeResidualBlock("spade_0", 16 * self.nf, 16 * self.nf)
+        self.spade_1 = SpadeResidualBlock("spade_1", 16 * self.nf, 16 * self.nf)
+        self.spade_2 = SpadeResidualBlock("spade_2", 16 * self.nf, 16 * self.nf)
+        self.spade_3 = SpadeResidualBlock("spade_3", 16 * self.nf, 8 * self.nf)
+        self.spade_4 = SpadeResidualBlock("spade_4", 8 * self.nf, 4 * self.nf)
+        self.spade_5 = SpadeResidualBlock("spade_5", 4 * self.nf, 2 * self.nf)
+        self.spade_6 = SpadeResidualBlock("spade_6", 2 * self.nf, 1 * self.nf)
 
         self.conv_7 = tfkl.Conv2D(3, 3, padding = "same")
         self.LeakyReLU = tfkl.LeakyReLU(alpha = 2e-1)
@@ -44,9 +41,8 @@ class SpadeGenerator(tfkl.Layer):
 
         return sw, sh
 
-    def __call__(self, *args, **kwargs):
-        mask = kwargs.get("mask", args[0])
-        z_noise = kwargs.get("z_noise", None)
+    def __call__(self, mask, *args, **kwargs):
+        z_noise = kwargs.get("z_noise", args[0] if args else None)
 
         if z_noise is None:
             z_noise = tf.random.normal([mask.shape[0], self.z_dim], 0, 1, dtype = tf.float32)
