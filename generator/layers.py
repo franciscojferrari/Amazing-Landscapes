@@ -11,23 +11,19 @@ class Spade(tfkl.Layer):
         # TODO: Check if other layers should have relu activation
         # TODO: Maybe add parameterized kernel size and padding. SEE: Paper's github
         self.bn = tfkl.BatchNormalization(momentum = 0.9, epsilon = 1e-5, center = False, scale = False)
-        self.conv0 = tfa.layers.SpectralNormalization(tfkl.Conv2D(128, 3, activation = "relu"))
-        self.conv1 = tfa.layers.SpectralNormalization(tfkl.Conv2D(n_out_filter, 3))
-        self.conv2 = tfa.layers.SpectralNormalization(tfkl.Conv2D(n_out_filter, 3))
+        self.conv0 = tfa.layers.SpectralNormalization(tfkl.Conv2D(128, 3, activation = "relu", padding = "same"))
+        self.conv1 = tfa.layers.SpectralNormalization(tfkl.Conv2D(n_out_filter, 3, padding = "same"))
+        self.conv2 = tfa.layers.SpectralNormalization(tfkl.Conv2D(n_out_filter, 3, padding = "same"))
 
-    def call(self, *args, **kwargs):
-        features = kwargs.get("features", args[0])
-        mask = kwargs.get("mask", args[1])
+    def call(self, features, *args, **kwargs):
+        mask = kwargs.get("mask", args[0] if args else None)
 
-        size = features.shape[-2:]
+        size = features.shape[1:3]
         mask = tf.image.resize(mask, size, method = "nearest")
         interim_conv = self.conv0(mask)
         gamma = self.conv1(interim_conv)
         beta = self.conv2(interim_conv)
 
-        print("features", self.bn(features).shape)
-        print("gamma", gamma.shape)
-        print("beta", beta.shape)
         return ((self.bn(features) * gamma) + beta)
 
 
@@ -52,9 +48,8 @@ class SpadeResidualBlock(tfkl.Layer):
             self.spade_skip = Spade(name = f"{name}_spade1", n_out_filter = n_input_filter)
             self.conv_skip = tfa.layers.SpectralNormalization(tfkl.Conv2D(n_out_filter, 3))
 
-    def call(self, *args, **kwargs):
-        features = kwargs.get("features", args[0])
-        mask = kwargs.get("mask", args[1])
+    def call(self, features, *args, **kwargs):
+        mask = kwargs.get("mask", args[0] if args else None)
 
         skip_features = features
         if self.learned_shortcut:

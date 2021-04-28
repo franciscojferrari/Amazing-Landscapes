@@ -52,7 +52,7 @@ class SpadeGenerator(tfkl.Layer):
             z_noise = tf.random.normal([mask.shape[0], self.z_dim], 0, 1, dtype = tf.float32)
 
         x = self.linear_layer_0(z_noise)
-        x = tfkl.Reshape(-1, 16 * self.nf, self.sh, self.sw)
+        x = tfkl.Reshape((-1, 16 * self.nf, self.sh, self.sw))(x)
 
         x = self.up_sample(self.spade_0(features = x, mask = mask))
         x = self.up_sample(self.spade_1(features = x, mask = mask))
