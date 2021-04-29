@@ -33,7 +33,7 @@ class SpadeGenerator(tfkl.Layer):
         self.up_sample = tfkl.UpSampling2D(2)
 
     def compute_latent_vector_size(self):
-        num_up_layers = 5
+        num_up_layers = 6
         aspect_ratio = 1
 
         sw = self.image_size[0] // (2 ** num_up_layers)
@@ -48,17 +48,27 @@ class SpadeGenerator(tfkl.Layer):
             z_noise = tf.random.normal([mask.shape[0], self.z_dim], 0, 1, dtype = tf.float32)
 
         x = self.linear_layer_0(z_noise)
-        x = tfkl.Reshape((-1, 16 * self.nf, self.sh, self.sw))(x)
-
+        print("linear ", x.shape)
+        # x = tfkl.Reshape((-1, 16 * self.nf, self.sh, self.sw))(x)
+        x = tf.reshape(x, [-1, self.sh, self.sw, 16 * self.nf])
+        print("reshape ", x.shape)
         x = self.up_sample(self.spade_0(features = x, mask = mask))
+        print("spade 1 - upsample ", x.shape)
         x = self.up_sample(self.spade_1(features = x, mask = mask))
+        print("spade 2 - upsample ", x.shape)
         x = self.up_sample(self.spade_2(features = x, mask = mask))
+        print("spade 3 - upsample ", x.shape)
         x = self.up_sample(self.spade_3(features = x, mask = mask))
+        print("spade 4 - upsample ", x.shape)
         x = self.up_sample(self.spade_4(features = x, mask = mask))
+        print("spade 5 - upsample ", x.shape)
         x = self.up_sample(self.spade_5(features = x, mask = mask))
+        print("spade 6 - upsample ", x.shape)
         x = self.up_sample(self.spade_6(features = x, mask = mask))
+        print("spade 7 - upsample ", x.shape)
 
         x = self.conv_7(self.LeakyReLU(x))
+        print("conv ", x.shape)
         x = tf.keras.activations.tanh(x)
 
         return x

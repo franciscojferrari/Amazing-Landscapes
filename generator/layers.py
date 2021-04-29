@@ -10,6 +10,7 @@ class Spade(tfkl.Layer):
         super(Spade, self).__init__(name = name, **kwargs)
         # TODO: Check if other layers should have relu activation
         # TODO: Maybe add parameterized kernel size and padding. SEE: Paper's github
+        # TODO: check if we need to remove spectral normalization
         self.bn = tfkl.BatchNormalization(momentum = 0.9, epsilon = 1e-5, center = False, scale = False)
         self.conv0 = tfa.layers.SpectralNormalization(tfkl.Conv2D(128, 3, activation = "relu", padding = "same"))
         self.conv1 = tfa.layers.SpectralNormalization(tfkl.Conv2D(n_out_filter, 3, padding = "same"))
