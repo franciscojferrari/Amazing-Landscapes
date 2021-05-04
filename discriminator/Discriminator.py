@@ -54,9 +54,7 @@ class Discriminator(tfkl.Layer):
 
         self.down_sampler = tf.keras.layers.AveragePooling2D(pool_size=2, strides=2)
 
-    def loss_discriminator(self, real_images, real_masks, fake_images, fake_masks):
-        real = self.call(real_images, real_masks)
-        fake = self.call(fake_images, fake_masks)
+    def loss_discriminator(self, real, fake):
 
         # Real loss
         min_val = tf.math.minimum(real - 1, tf.zeros_like(real))
@@ -68,11 +66,21 @@ class Discriminator(tfkl.Layer):
 
         return real_loss + fake_loss
 
-    def loss_generator(self, fake_images, fake_masks):
-        fake = self.call(fake_images, fake_masks)
+    def loss_generator(self, fake):
         return - tf.reduce_mean(fake)
 
-    def call(self, image, mask, down = 2):
+    def total_loss(self, real_images, real_masks, fake_images, fake_masks):
+        """Implements the hinge loss function for both generator and discriminator."""
+
+        real = self.call(real_images, real_masks)
+        fake = self.call(fake_images, fake_masks)
+
+        generator_loss = self.loss_generator(fake)
+        discriminator_loss = self.loss_discriminator(real, fake)
+
+        return generator_loss + discriminator_loss
+
+    def call(self, image, mask, down=2):
 
         final = tf.zeros(image.shape[0])
         for i in range(down + 1):
