@@ -52,15 +52,44 @@ class Discriminator(tfkl.Layer):
             strides=1,
             padding="same")
 
-    def call(self, image, mask):
+        self.down_sampler = tf.keras.layers.AveragePooling2D(pool_size=2, strides=2)
 
-        inputs = tf.concat([image, mask], axis=-1)
+    def loss_discriminator(self, real_images, real_masks, fake_images, fake_masks):
+        real = self.call(real_images, real_masks)
+        fake = self.call(fake_images, fake_masks)
 
-        x = self.layer1(inputs)
-        x = self.leakyrelu(self.norm2(self.layer2(x)))
-        x = self.leakyrelu(self.norm3(self.layer3(x)))
-        x = self.leakyrelu(self.norm4(self.layer4(x)))
+        # Real loss
+        min_val = tf.math.minimum(real - 1, tf.zeros_like(real))
+        real_loss = - tf.reduce_mean(min_val)
 
-        out = self.output_layer(x)
+        # Fake loss.
+        min_val = tf.math.minimum(-fake - 1, tf.zeros_like(fake))
+        fake_loss = - tf.reduce_mean(min_val)
 
-        return out
+        return real_loss + fake_loss
+
+    def loss_generator(self, fake_images, fake_masks):
+        fake = self.call(fake_images, fake_masks)
+        return - tf.reduce_mean(fake)
+
+    def call(self, image, mask, down = 2):
+
+        final = tf.zeros(image.shape[0])
+        for i in range(down + 1):
+            if i != 0:
+                # Down sample img and mask.
+                image = self.down_sampler(image)
+                mask = self.down_sampler(mask)
+
+            inputs = tf.concat([image, mask], axis=-1)
+
+            x = self.layer1(inputs)
+            x = self.leakyrelu(self.norm2(self.layer2(x)))
+            x = self.leakyrelu(self.norm3(self.layer3(x)))
+            x = self.leakyrelu(self.norm4(self.layer4(x)))
+
+            out = self.output_layer(x)
+
+            final = tf.math.add(final, tf.math.reduce_mean(out, axis=(1, 2, 3)))
+
+        return final
