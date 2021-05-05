@@ -11,13 +11,19 @@ class Model(tf.keras.Model):
         """Alex: Sampler and putting  everything together"""
         self.sampler = None
 
-    def generator_loss(self):
-        """Seb"""
-        pass
+    def loss_discriminator(self, real, fake):
+        # Real loss
+        min_val = tf.math.minimum(real - 1, tf.zeros_like(real))
+        real_loss = - tf.reduce_mean(min_val)
 
-    def discriminator_loss(self, real_img):
-        """Seb"""
-        pass
+        # Fake loss.
+        min_val = tf.math.minimum(-fake - 1, tf.zeros_like(fake))
+        fake_loss = - tf.reduce_mean(min_val)
+
+        return real_loss + fake_loss
+
+    def loss_generator(self, fake):
+        return - tf.reduce_mean(fake)
 
     def kl_divergence_loss(self):
         """Anna"""
@@ -25,12 +31,33 @@ class Model(tf.keras.Model):
 
     def train_step(self, data):
         images, masks = data
-        with tf.GradientTape() as tape:
+        with tf.GradientTape() as discriminator_tape, tf.GradientTape() as generator_tape:
             # Forward pass
-            image_style_mu_var = self.encoder(images)
-            z_noise_style = self.sampler(image_style_mu_var)
+            out_mu, out_var = self.encoder(images)
+            z_noise_style = self.sampler(out_mu, out_var)
             generated_image = self.generator(masks, z_noise = z_noise_style)
 
             real_output = self.discriminator(images, masks)
             fake_output = self.discriminator(generated_image, masks)
-            
+
+            generator_loss = self.loss_generator(fake_output)
+            discriminator_loss = self.loss_discriminator(real_output, fake_output)
+
+            kl_loss = self.kl_divergence_loss(out_mu, out_var)
+
+            total_generator_loss = kl_loss + generator_loss
+
+        generator_gradients = generator_tape.gradient(
+            total_generator_loss, [self.generator.trainable_variables, self.encoder.trainable_variables]
+        )
+        self.optimizer.apply_gradients(zip(generator_gradients, trainable_vars))
+
+        discriminator_gradients = discriminator_tape.gradient(
+            discriminator_loss, self.discriminator.trainable_variables
+        )
+        self.optimizer.apply_gradients(
+            zip(discriminator_gradients, self.discriminator.trainable_variables)
+        )
+
+        return {"total_generator_loss": total_generator_loss, "generator_loss": generator_loss, "kl_loss": kl_loss,
+                "discriminator_loss": discriminator_loss}
