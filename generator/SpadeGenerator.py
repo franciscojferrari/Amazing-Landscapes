@@ -17,6 +17,9 @@ class SpadeGenerator(tfkl.Layer):
         self.z_dim = 256
         self.nf = 64
 
+        self.up_sample = tfkl.UpSampling2D(2)
+
+    def build(self, input_shape):
         self.linear_layer_0 = tfkl.Dense(16 * self.nf * self.sw * self.sh)
 
         self.spade_0 = SpadeResidualBlock("spade_0", 16 * self.nf, 16 * self.nf)
@@ -29,9 +32,7 @@ class SpadeGenerator(tfkl.Layer):
 
         self.conv_7 = tfkl.Conv2D(3, 3, padding = "same")
         self.LeakyReLU = tfkl.LeakyReLU(alpha = 2e-1)
-
-        self.up_sample = tfkl.UpSampling2D(2)
-
+        
     def compute_latent_vector_size(self):
         num_up_layers = 6
         aspect_ratio = 1
