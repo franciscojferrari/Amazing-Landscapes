@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-from .layers import SpadeResidualBlock
+from layers import SpadeResidualBlock
 
 # import tensorflow_addons as tfa
 
@@ -42,16 +42,24 @@ class SpadeGenerator(tfkl.Layer):
         return sw, sh
 
     def __call__(self, mask, *args, **kwargs):
+        mask = tf.image.resize(mask, (256, 256))
         z_noise = kwargs.get("z_noise", args[0] if args else None)
 
         if z_noise is None:
             z_noise = tf.random.normal([mask.shape[0], self.z_dim], 0, 1, dtype = tf.float32)
 
         x = self.linear_layer_0(z_noise)
+
         x = tfkl.Reshape((-1, 16 * self.nf, self.sh, self.sw))(x)
 
         x = self.up_sample(self.spade_0(features = x, mask = mask))
-        x = self.up_sample(self.spade_1(features = x, mask = mask))
+
+        # x = tfkl.Reshape((-1, 16 * self.nf, self.sh, self.sw))(x)
+        x = tf.reshape(x, [-1, self.sh, self.sw, 16 * self.nf])
+        x = self.up_sample(self.spade_0(features = x, mask = mask))
+        #print("spade 1 - upsample ", x.shape)
+
+        x = self.spade_1(features = x, mask = mask)
         x = self.up_sample(self.spade_2(features = x, mask = mask))
         x = self.up_sample(self.spade_3(features = x, mask = mask))
         x = self.up_sample(self.spade_4(features = x, mask = mask))
