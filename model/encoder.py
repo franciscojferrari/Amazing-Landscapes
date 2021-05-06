@@ -44,3 +44,13 @@ class Encoder(tfkl.Layer):
         out_var = self.linear_var(x)
 
         return out_mu, out_var
+
+
+class Sampler(tfkl.Layer):
+    def call(self, inputs, train=True):
+        z_mean, z_log_var = inputs
+        if train:
+            epsilon = tf.keras.backend.random_normal(shape=z_log_var.shape)
+            return z_mean + tf.exp(0.5 * z_log_var) * epsilon
+        else:
+            return z_mean

@@ -1,4 +1,5 @@
 import tensorflow as tf
+from encoder import Encoder, Sampler
 
 
 class Model(tf.keras.Model):
