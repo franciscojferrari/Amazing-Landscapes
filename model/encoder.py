@@ -30,7 +30,8 @@ class Encoder(tfkl.Layer):
 
     # def call(self, inputs, training=None):
     def call(self, input_tensor, **kwargs):
-        x = tf.image.resize(input_tensor, (256, 256))
+        # x = tf.image.resize(input_tensor, (256, 256))
+        x = input_tensor
         x = self.lrelu(self.in1(self.conv1(x)))
         x = self.lrelu(self.in2(self.conv2(x)))
         x = self.lrelu(self.in3(self.conv3(x)))

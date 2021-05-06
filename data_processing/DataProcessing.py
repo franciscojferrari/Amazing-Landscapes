@@ -1,8 +1,6 @@
-from data_processing.utils import *
-
-import os
-import tensorflow as tf
 import time
+
+from data_processing.utils import *
 
 
 class DataWriter:
@@ -19,7 +17,7 @@ class DataWriter:
     def process_files(self) -> None:
         """Process files that we wish to write to a dataset."""
         # get all files
-        file_names = find_files_cityscape(set_type=self.set_type)
+        file_names = find_files_cityscape(set_type = self.set_type)
 
         # Create a dataset containing the filenames
         file_dataset = build_file_dataset(file_names)
@@ -61,18 +59,18 @@ class DataWriter:
         img_original = load_img(original_img_path)
         img_original = tf.image.resize(
             img_original,
-            size=[self.img_height, self.img_width],
-            method="nearest",
-            preserve_aspect_ratio=self.config["preserve_aspect_ratio"],
+            size = [self.img_height, self.img_width],
+            method = "nearest",
+            preserve_aspect_ratio = self.config["preserve_aspect_ratio"],
         )
 
         # Process masked img
         img_masked = load_img(masked_img_path)
         img_masked = tf.image.resize(
             img_masked,
-            size=[self.img_height, self.img_width],
-            method="nearest",
-            preserve_aspect_ratio=self.config["preserve_aspect_ratio"],
+            size = [self.img_height, self.img_width],
+            method = "nearest",
+            preserve_aspect_ratio = self.config["preserve_aspect_ratio"],
         )
 
         return img_original, img_masked, label
@@ -102,6 +100,22 @@ class DataReader:
         processed_dataset = tf.data.TFRecordDataset(tfrecord_path)
         parsed_dataset = processed_dataset.map(self._parse_function)
         self.data_set = parsed_dataset.map(parse_serialized_tensors)
+
+    # def _parse_function(self, example_proto):
+    #     # Parse the input tf.train.Example proto using the provided dictionary
+    #     parsed = tf.io.parse_single_example(example_proto, self.feature_description)
+    #     return parsed
+    #
+    # def _split_function(self, example_proto):
+    #     return example_proto['img_original'], example_proto['img_masked']
+    #
+    # def read_data_set(self) -> None:
+    #     """Read image dataset and parse it."""
+    #     tfrecord_path = os.path.join(self.base_path, f"{self.set_type}.tfrecords")
+    #     processed_dataset = tf.data.TFRecordDataset(tfrecord_path)
+    #     parsed_dataset = processed_dataset.map(self._parse_function)
+    #     parsed_dataset_ = parsed_dataset.map(parse_serialized_tensors)
+    #     self.data_set = parsed_dataset_.map(self._split_function)
 
     def get_dataset(self) -> tf.data.TFRecordDataset:
         """Getter for the dataset."""

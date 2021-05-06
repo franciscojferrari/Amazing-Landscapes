@@ -39,7 +39,7 @@ class SpadeGenerator(tfkl.Layer):
         return sw, sh
 
     def call(self, mask, *args, **kwargs):
-        mask = tf.image.resize(mask, (256, 256))
+        # mask = tf.image.resize(mask, (256, 256))
         z_noise = kwargs.get("z_noise", args[0] if args else None)
 
         if z_noise is None:
