@@ -8,7 +8,6 @@ class Encoder(tfkl.Layer):
         super(Encoder, self).__init__(name = name, **kwargs)
 
         # def build(self, input_shape):
-        print("ssss")
         self.conv1 = tfkl.Conv2D(64, kernel_size = 3, strides = (2, 2), padding = 'same')
         self.in1 = tfa.layers.InstanceNormalization(axis = 3)
         self.conv2 = tfkl.Conv2D(128, kernel_size = 3, strides = (2, 2), padding = 'same')

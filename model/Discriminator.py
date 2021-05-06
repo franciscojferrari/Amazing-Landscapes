@@ -52,7 +52,7 @@ class Discriminator(tfkl.Layer):
 
     def call(self, image, mask, down = 2):
 
-        final = tf.zeros(image.shape[0])
+        final = tf.zeros(tf.shape(image)[0])
         for i in range(down + 1):
             if i != 0:
                 # Down sample img and mask.
