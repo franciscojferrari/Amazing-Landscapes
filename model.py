@@ -25,9 +25,8 @@ class Model(tf.keras.Model):
     def loss_generator(self, fake):
         return - tf.reduce_mean(fake)
 
-    def kl_divergence_loss(self):
-        """Anna"""
-        pass
+    def kl_divergence_loss(self, mu, logvar):
+        return -0.5 * (1 + logvar - tf.math.pow(mu, 2) - tf.math.exp(logvar))
 
     def train_step(self, data):
         images, masks = data
