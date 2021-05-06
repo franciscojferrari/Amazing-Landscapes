@@ -13,7 +13,7 @@ class Spade(tfkl.Layer):
         # TODO: check if we need to remove spectral normalization
         self.n_out_filter = n_out_filter
 
-    def build(self, input_shape):
+        # def build(self, input_shape):
         self.bn = tfkl.BatchNormalization(momentum = 0.9, epsilon = 1e-5, center = False, scale = False)
         self.conv0 = tfa.layers.SpectralNormalization(tfkl.Conv2D(128, 3, activation = "relu", padding = "same"))
         self.conv1 = tfa.layers.SpectralNormalization(tfkl.Conv2D(self.n_out_filter, 3, padding = "same"))

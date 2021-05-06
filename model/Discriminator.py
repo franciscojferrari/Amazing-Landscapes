@@ -4,14 +4,10 @@ import tensorflow_addons as tfa
 
 
 class Discriminator(tfkl.Layer):
-    def __init__(
-            self,
-            name = "discriminator",
-            **kwargs,
-    ):
+    def __init__(self, name = "discriminator", **kwargs):
         super(Discriminator, self).__init__(name = name, **kwargs)
 
-    def build(self, input_shape):
+        # def build(self, input_shape):
         """PatchGAN discriminator"""
         self.leakyrelu = tfkl.LeakyReLU(alpha = 0.2)
         self.layer1 = tfkl.Conv2D(
