@@ -77,9 +77,10 @@ class DataWriter:
 
 
 class DataReader:
-    def __init__(self, base_path, set_type):
+    def __init__(self, base_path, set_type, config):
         self.base_path = base_path
         self.set_type = set_type
+        self.config = config
 
         self.feature_description = {
             "label": tf.io.FixedLenFeature([], tf.string),
@@ -99,23 +100,20 @@ class DataReader:
         tfrecord_path = os.path.join(self.base_path, f"{self.set_type}.tfrecords")
         processed_dataset = tf.data.TFRecordDataset(tfrecord_path)
         parsed_dataset = processed_dataset.map(self._parse_function)
-        self.data_set = parsed_dataset.map(parse_serialized_tensors)
+        self.data_set = parsed_dataset.map(self.parse_serialized_tensors)
 
-    # def _parse_function(self, example_proto):
-    #     # Parse the input tf.train.Example proto using the provided dictionary
-    #     parsed = tf.io.parse_single_example(example_proto, self.feature_description)
-    #     return parsed
-    #
-    # def _split_function(self, example_proto):
-    #     return example_proto['img_original'], example_proto['img_masked']
-    #
-    # def read_data_set(self) -> None:
-    #     """Read image dataset and parse it."""
-    #     tfrecord_path = os.path.join(self.base_path, f"{self.set_type}.tfrecords")
-    #     processed_dataset = tf.data.TFRecordDataset(tfrecord_path)
-    #     parsed_dataset = processed_dataset.map(self._parse_function)
-    #     parsed_dataset_ = parsed_dataset.map(parse_serialized_tensors)
-    #     self.data_set = parsed_dataset_.map(self._split_function)
+    def parse_serialized_tensors(self, example):
+        """Convert the serialized tensor back to a tensor."""
+        example["img_original"] = tf.reshape(example["img_original"], [])
+        example["img_masked"] = tf.reshape(example["img_masked"], [])
+
+        img_height = self.config['img_height']
+        img_width = self.config['img_width']
+        example["img_original"] = tf.ensure_shape(tf.io.parse_tensor(example["img_original"], out_type = tf.float32),
+                                                  (img_height, img_width, 3))
+        example["img_masked"] = tf.ensure_shape(tf.io.parse_tensor(example["img_masked"], out_type = tf.float32),
+                                                (img_height, img_width, 3))
+        return example
 
     def get_dataset(self) -> tf.data.TFRecordDataset:
         """Getter for the dataset."""

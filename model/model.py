@@ -3,6 +3,21 @@ import tensorflow as tf
 from .Discriminator import Discriminator
 from .SpadeGenerator import SpadeGenerator
 from .encoder import Encoder, Sampler
+from .vgg19 import VGGLoss
+
+
+class LearningRateReducer(tf.keras.callbacks.Callback):
+    def __init__(self, decay_epoch, total_epochs):
+        super(LearningRateReducer, self).__init__()
+        self.decay_epoch = decay_epoch
+        self.total_epochs = total_epochs
+
+    def on_epoch_end(self, epoch, logs = {}):
+        if epoch > self.decay_epoch:
+            init_lr = self.model.g_optimizer.lr.read_value()
+            new_lr = init_lr * (self.total_epochs - epoch) / (self.total_epochs - self.decay_epoch)
+            self.model.g_optimizer.lr.assign(new_lr)
+            self.model.d_optimizer.lr.assign(new_lr)
 
 
 class Model(tf.keras.Model):
@@ -16,19 +31,7 @@ class Model(tf.keras.Model):
         self.discriminator = Discriminator()
         # """Alex: Sampler and putting  everything together"""
         self.sampler = Sampler()
-
-    # def loss_discriminator(self, real, fake):
-    #     # Real loss
-    #     min_val = tf.math.minimum(real - 1, tf.zeros_like(real))
-    #     real_loss = - tf.reduce_mean(min_val)
-    #
-    #     # Fake loss.
-    #     min_val = tf.math.minimum(-fake - 1, tf.zeros_like(fake))
-    #     fake_loss = - tf.reduce_mean(min_val)
-    #     return real_loss + fake_loss
-    #
-    # def loss_generator(self, fake):
-    #     return - tf.reduce_mean(fake)
+        self.vgg_loss = VGGLoss()
 
     def loss_discriminator(self, real, fake, loss_type = None):
         if loss_type == "hinge":
@@ -38,6 +41,7 @@ class Model(tf.keras.Model):
             # Fake loss.
             min_val = tf.math.minimum(-fake - 1, tf.zeros_like(fake))
             fake_loss = - tf.reduce_mean(min_val)
+
         elif loss_type == "gan":
             cross_entropy = tf.keras.losses.BinaryCrossentropy(from_logits = True)
             real_loss = cross_entropy(tf.ones_like(real), real)
@@ -54,32 +58,14 @@ class Model(tf.keras.Model):
     def kl_divergence_loss(self, mu, logvar):
         return -0.5 * tf.math.reduce_sum(1 + logvar - tf.math.pow(mu, 2) - tf.math.exp(logvar))
 
-    def inference_call(self, style_image, mask):
+    def compile(self, d_optimizer, g_optimizer, metrics = None):
+        super(Model, self).compile(metrics = metrics)
+        self.d_optimizer = d_optimizer
+        self.g_optimizer = g_optimizer
 
-        style_image = tf.cast(tf.image.resize(style_image, (256, 256), method = "nearest"), dtype = tf.float32)
-        mask = tf.cast(tf.image.resize(mask, (256, 256), method = "nearest"), dtype = tf.float32)
-
-        out_mu, out_var = self.encoder(style_image)
-        z_noise_style = self.sampler((out_mu, out_var))
-        generated_image = self.generator(mask, z_noise = z_noise_style)
-        print("IMAGE!")
-        return generated_image
-
-    def custom_fit(self, dataset, epochs, batch_size):
-
-        for epoch in range(epochs):
-
-            for batch in dataset.batch(batch_size):
-                mask_batch = batch['img_masked']
-                # print(mask_batch)
-                img_batch = batch['img_original']
-
-                images = tf.cast(tf.image.resize(img_batch, (256, 256), method = "nearest"), dtype = tf.float32)
-                masks = tf.cast(tf.image.resize(mask_batch, (256, 256), method = "nearest"), dtype = tf.float32)
-                losses = self.custom_train_step(images, masks)
-            print(losses)
-
-    def custom_train_step(self, images, masks):
+    def train_step(self, data):
+        images = data['img_original']
+        masks = data['img_masked']
 
         with tf.GradientTape() as generator_tape:
             # Forward pass
@@ -90,21 +76,21 @@ class Model(tf.keras.Model):
             fake_output = self.discriminator(generated_image, masks)
 
             generator_loss = self.loss_generator(fake_output, loss_type = "hinge")
-
             kl_loss = self.kl_divergence_loss(out_mu, out_var)
-            total_generator_loss = kl_loss + generator_loss
+            vgg_loss = self.vgg_loss((images, generated_image))
+
+            vgg_weight = 10
+            lambda_ = 0.05
+
+            total_generator_loss = tf.math.scalar_mul(lambda_, kl_loss) \
+                                   + generator_loss \
+                                   + tf.math.scalar_mul(vgg_weight, vgg_loss)
 
         generator_gradients = generator_tape.gradient(
             total_generator_loss, (self.generator.trainable_variables + self.encoder.trainable_variables)
         )
-        self.optimizer.apply_gradients(
+        self.g_optimizer.apply_gradients(
             zip(generator_gradients, (self.generator.trainable_variables + self.encoder.trainable_variables)))
-
-        # generator_gradients = generator_tape.gradient(
-        #     generator_loss, self.generator.trainable_variables
-        # )
-        # self.optimizer.apply_gradients(
-        #     zip(generator_gradients, self.generator.trainable_variables))
 
         with tf.GradientTape() as discriminator_tape:
             # Forward pass
@@ -120,11 +106,10 @@ class Model(tf.keras.Model):
         discriminator_gradients = discriminator_tape.gradient(
             discriminator_loss, self.discriminator.trainable_variables
         )
-        self.optimizer.apply_gradients(
+        self.d_optimizer.apply_gradients(
             zip(discriminator_gradients, self.discriminator.trainable_variables)
         )
 
-        return {"total_generator_loss": total_generator_loss, "generator_loss": generator_loss, "kl_loss": kl_loss,
-                "discriminator_loss": discriminator_loss}
-
-        # return {"generator_loss": generator_loss, "discriminator_loss": discriminator_loss}
+        return {"total_generator_loss": total_generator_loss, "generator_loss": generator_loss,
+                "kl_loss": kl_loss, "discriminator_loss": discriminator_loss, "vgg_loss": vgg_loss,
+                "lr_d": self.d_optimizer.lr, "lr_g": self.g_optimizer.lr}
