@@ -13,11 +13,18 @@ class LearningRateReducer(tf.keras.callbacks.Callback):
         self.total_epochs = total_epochs
 
     def on_epoch_end(self, epoch, logs = {}):
+
+        if epoch == 1:
+            self.init_lr_g = self.model.g_optimizer.lr.read_value()
+            self.init_lr_d = self.model.d_optimizer.lr.read_value()
+            print("Epoch: ", epoch)
+
         if epoch > self.decay_epoch:
-            init_lr = self.model.g_optimizer.lr.read_value()
-            new_lr = init_lr * (self.total_epochs - epoch) / (self.total_epochs - self.decay_epoch)
-            self.model.g_optimizer.lr.assign(new_lr)
-            self.model.d_optimizer.lr.assign(new_lr)
+            new_lr_g = self.init_lr_g * (self.total_epochs - epoch) / (self.total_epochs - self.decay_epoch)
+            self.model.g_optimizer.lr.assign(new_lr_g)
+
+            new_lr_d = self.init_lr_d * (self.total_epochs - epoch) / (self.total_epochs - self.decay_epoch)
+            self.model.d_optimizer.lr.assign(new_lr_d)
 
 
 class Model(tf.keras.Model):
@@ -55,6 +62,10 @@ class Model(tf.keras.Model):
             cross_entropy = tf.keras.losses.BinaryCrossentropy(from_logits = True)
             return cross_entropy(tf.ones_like(fake), fake)
 
+    def g_feature_loss(self, fake, target):
+        l1_loss = tf.reduce_mean(tf.abs(fake - target))
+        return l1_loss
+
     def kl_divergence_loss(self, mu, logvar):
         return -0.5 * tf.math.reduce_sum(1 + logvar - tf.math.pow(mu, 2) - tf.math.exp(logvar))
 
@@ -74,17 +85,21 @@ class Model(tf.keras.Model):
             generated_image = self.generator(masks, z_noise = z_noise_style)
 
             fake_output = self.discriminator(generated_image, masks)
+            real_output = self.discriminator(images, masks)
 
             generator_loss = self.loss_generator(fake_output, loss_type = "hinge")
             kl_loss = self.kl_divergence_loss(out_mu, out_var)
             vgg_loss = self.vgg_loss((images, generated_image))
+            g_feature_loss = self.g_feature_loss(fake_output, real_output)
 
-            vgg_weight = 10
+            vgg_weight = 2
             lambda_ = 0.05
+            g_feature_loss_lambda = 5
 
             total_generator_loss = tf.math.scalar_mul(lambda_, kl_loss) \
                                    + generator_loss \
-                                   + tf.math.scalar_mul(vgg_weight, vgg_loss)
+                                   + tf.math.scalar_mul(vgg_weight, vgg_loss) \
+                                   + tf.math.scalar_mul(g_feature_loss_lambda, g_feature_loss)
 
         generator_gradients = generator_tape.gradient(
             total_generator_loss, (self.generator.trainable_variables + self.encoder.trainable_variables)
@@ -111,5 +126,6 @@ class Model(tf.keras.Model):
         )
 
         return {"total_generator_loss": total_generator_loss, "generator_loss": generator_loss,
-                "kl_loss": kl_loss, "discriminator_loss": discriminator_loss, "vgg_loss": vgg_loss,
+                "g_feature_loss": g_feature_loss, "kl_loss": kl_loss,
+                "discriminator_loss": discriminator_loss, "vgg_loss": vgg_loss,
                 "lr_d": self.d_optimizer.lr, "lr_g": self.g_optimizer.lr}

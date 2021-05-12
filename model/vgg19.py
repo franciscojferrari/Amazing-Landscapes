@@ -17,8 +17,8 @@ class VGGLoss(tf.keras.Model):
     def call(self, inputs, **kwargs):
         x, y = inputs
 
-        x = ((x + 1) / 2) * 255.0
-        y = ((y + 1) / 2) * 255.0
+        x = (x + 1) * 127.5
+        y = (y + 1) * 127.5
         x_vgg, y_vgg = self.vgg(preprocess_input(x)), self.vgg(preprocess_input(y))
 
         loss = 0
