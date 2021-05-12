@@ -14,7 +14,7 @@ class DataWriter:
 
         self.processed_files = None
 
-    def process_files(self) -> None:
+    def process_files_cityscape(self) -> None:
         """Process files that we wish to write to a dataset."""
         # get all files
         file_names = find_files_cityscape(set_type = self.set_type)
@@ -23,9 +23,14 @@ class DataWriter:
         file_dataset = build_file_dataset(file_names)
 
         # Apply the processing function to the files
-        self.processed_files = transform_files(file_dataset, self.load_and_downsample)
+        self.processed_files = transform_files(file_dataset, self.load_and_downsample_cityscape)
 
-    def write_files(self) -> None:
+    def process_files_celebmask(self) -> None:
+        file_names = find_files_celebmask()
+        file_dataset = build_file_dataset(file_names)
+        self.processed_files = transform_files(file_dataset, self.load_and_downsample_celebmask)
+
+    def write_files_cityscape(self) -> None:
         start_time = time.time()
         print("Start writing files")
 
@@ -44,7 +49,26 @@ class DataWriter:
 
         print(f"Finished writing files in:  {time.time() - start_time}s")
 
-    def load_and_downsample(self, file_path: tf.Tensor) -> [tf.Tensor, tf.Tensor, str]:
+    def write_files_celebmask(self):
+        start_time = time.time()
+        print("Start writing files")
+
+        record_file_name = "dataset.tfrecords"
+        write_path = f"{self.bucket_path}/CelebAMask/processed_data"
+        record_file = os.path.join(write_path, record_file_name)
+        n_samples = tf.data.experimental.cardinality(self.processed_files).numpy()
+        print(f"Number of samples in dataset: {n_samples}")
+
+        with tf.io.TFRecordWriter(record_file) as writer:
+            for img_original, img_masked, label in self.processed_files:
+                tf_example = datapoint_example(
+                    img_original, img_masked, label, self.set_type
+                )
+                writer.write(tf_example.SerializeToString())
+
+        print(f"Finished writing files in:  {time.time() - start_time}s")
+
+    def load_and_downsample_cityscape(self, file_path: tf.Tensor) -> [tf.Tensor, tf.Tensor, str]:
         """Load image file from disk and perform downsampling"""
 
         file_path = file_path.numpy().decode("utf-8")
@@ -71,6 +95,32 @@ class DataWriter:
             size = [self.img_height, self.img_width],
             method = "nearest",
             preserve_aspect_ratio = self.config["preserve_aspect_ratio"],
+        )
+
+        return img_original, img_masked, label
+
+    def load_and_downsample_celebmask(self, file_name: tf.Tensor) -> [tf.Tensor, tf.Tensor, str]:
+
+        label = file_name.split(".")[0]
+        original_img_path = f"{self.bucket_path}/CelebAMask/CelebA-HQ-img/{file_name}.jpg"
+        masked_img_path = f"{self.bucket_path}/CelebAMask/CelebAMask-HQ-mask-color/{file_name}.png"
+
+        # Process original img
+        img_original = load_img(original_img_path)
+        img_original = tf.image.resize(
+            img_original,
+            size=[self.img_height, self.img_width],
+            method="nearest",
+            preserve_aspect_ratio=self.config["preserve_aspect_ratio"],
+        )
+
+        # Process masked img
+        img_masked = load_img(masked_img_path)
+        img_masked = tf.image.resize(
+            img_masked,
+            size=[self.img_height, self.img_width],
+            method="nearest",
+            preserve_aspect_ratio=self.config["preserve_aspect_ratio"],
         )
 
         return img_original, img_masked, label

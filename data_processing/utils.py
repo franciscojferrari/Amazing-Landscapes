@@ -26,6 +26,10 @@ def find_files_cityscape(set_type = "train"):
     return file_names
 
 
+def find_files_celebmask():
+    return [f"{i}" for i in range(1000)]
+
+
 def build_file_dataset(file_paths: List[str]) -> tf.data.Dataset:
     """Create a DataSet object containing all file paths"""
     file_paths = tf.convert_to_tensor(file_paths, dtype = tf.string)
