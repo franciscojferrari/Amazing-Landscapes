@@ -12,9 +12,8 @@ def pixel_accuracy(eval_segm, gt_segm):
         float: pixel accuracy
     """
 
-    assert eval_segm.shape == gt_segm.shape
-    size = eval_segm.shape
-    num_pixels = np.prod(size)
+    assert eval_segm.shape == gt_segm.shape, "Segmentation mask dimensions don't match"
+    num_pixels = eval_segm.size
     eval_segm.flatten()
     gt_segm.flatten()
     return np.sum(eval_segm == gt_segm)/num_pixels
