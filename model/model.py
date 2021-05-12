@@ -66,6 +66,19 @@ class Model(tf.keras.Model):
         l1_loss = tf.reduce_mean(tf.abs(fake - target))
         return l1_loss
 
+    def l1_loss(self, real, fake):
+        return tf.reduce_mean(tf.abs(real - fake))
+
+    def feature_loss(self, real, fake):
+        loss = []
+        for i in range(len(fake)):
+            intermediate_loss = 0
+            for j in range(len(fake[i]) - 1):
+                intermediate_loss += self.l1_loss(real[i][j], fake[i][j])
+            loss.append(intermediate_loss)
+
+        return tf.reduce_mean(loss)
+
     def kl_divergence_loss(self, mu, logvar):
         return -0.5 * tf.math.reduce_sum(1 + logvar - tf.math.pow(mu, 2) - tf.math.exp(logvar))
 
