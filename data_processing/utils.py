@@ -26,8 +26,8 @@ def find_files_cityscape(set_type = "train"):
     return file_names
 
 
-def find_files_celebmask():
-    return [f"{i}" for i in range(1000)]
+def find_files_celebmask(nr_files):
+    return [f"{i}" for i in range(nr_files)]
 
 
 def build_file_dataset(file_paths: List[str]) -> tf.data.Dataset:

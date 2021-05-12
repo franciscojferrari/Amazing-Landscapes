@@ -25,8 +25,8 @@ class DataWriter:
         # Apply the processing function to the files
         self.processed_files = transform_files(file_dataset, self.load_and_downsample_cityscape)
 
-    def process_files_celebmask(self) -> None:
-        file_names = find_files_celebmask()
+    def process_files_celebmask(self, nr_files) -> None:
+        file_names = find_files_celebmask(nr_files)
         file_dataset = build_file_dataset(file_names)
         self.processed_files = transform_files(file_dataset, self.load_and_downsample_celebmask)
 
