@@ -61,7 +61,7 @@ def load_img(file_path: str) -> tf.Tensor:
     if extension == ".png":
         return tf.image.decode_png(img, channels = 3)
 
-    elif extension == ".jpeg":
+    elif extension == ".jpeg" or extension == ".jpg":
         return tf.image.decode_jpeg(img, channels = 3)
 
 

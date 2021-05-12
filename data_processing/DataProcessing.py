@@ -49,11 +49,11 @@ class DataWriter:
 
         print(f"Finished writing files in:  {time.time() - start_time}s")
 
-    def write_files_celebmask(self):
+    def write_files_celebmask(self, nr_files):
         start_time = time.time()
         print("Start writing files")
 
-        record_file_name = "dataset.tfrecords"
+        record_file_name = f"{nr_files}.tfrecords"
         write_path = f"{self.bucket_path}/CelebAMask/processed_data"
         record_file = os.path.join(write_path, record_file_name)
         n_samples = tf.data.experimental.cardinality(self.processed_files).numpy()
@@ -101,9 +101,9 @@ class DataWriter:
 
     def load_and_downsample_celebmask(self, file_name: tf.Tensor) -> [tf.Tensor, tf.Tensor, str]:
 
-        label = file_name.split(".")[0]
-        original_img_path = f"{self.bucket_path}/CelebAMask/CelebA-HQ-img/{file_name}.jpg"
-        masked_img_path = f"{self.bucket_path}/CelebAMask/CelebAMask-HQ-mask-color/{file_name}.png"
+        file_name = file_name.numpy().decode("utf-8")
+        original_img_path = f"{self.bucket_path}/CelebAMask/CelebA-HG-img-Files/{file_name}.jpg"
+        masked_img_path = f"{self.bucket_path}/CelebAMask/CelebAMask-HQ-mask-color-Files/{file_name}.png"
 
         # Process original img
         img_original = load_img(original_img_path)
@@ -123,7 +123,7 @@ class DataWriter:
             preserve_aspect_ratio=self.config["preserve_aspect_ratio"],
         )
 
-        return img_original, img_masked, label
+        return img_original, img_masked, file_name
 
 
 class DataReader:
