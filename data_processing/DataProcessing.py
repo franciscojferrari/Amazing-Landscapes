@@ -1,8 +1,6 @@
-from data_processing.utils import *
-
-import os
-import tensorflow as tf
 import time
+
+from data_processing.utils import *
 
 
 class DataWriter:
@@ -19,7 +17,7 @@ class DataWriter:
     def process_files(self) -> None:
         """Process files that we wish to write to a dataset."""
         # get all files
-        file_names = find_files_cityscape(set_type=self.set_type)
+        file_names = find_files_cityscape(set_type = self.set_type)
 
         # Create a dataset containing the filenames
         file_dataset = build_file_dataset(file_names)
@@ -61,27 +59,28 @@ class DataWriter:
         img_original = load_img(original_img_path)
         img_original = tf.image.resize(
             img_original,
-            size=[self.img_height, self.img_width],
-            method="nearest",
-            preserve_aspect_ratio=self.config["preserve_aspect_ratio"],
+            size = [self.img_height, self.img_width],
+            method = "nearest",
+            preserve_aspect_ratio = self.config["preserve_aspect_ratio"],
         )
 
         # Process masked img
         img_masked = load_img(masked_img_path)
         img_masked = tf.image.resize(
             img_masked,
-            size=[self.img_height, self.img_width],
-            method="nearest",
-            preserve_aspect_ratio=self.config["preserve_aspect_ratio"],
+            size = [self.img_height, self.img_width],
+            method = "nearest",
+            preserve_aspect_ratio = self.config["preserve_aspect_ratio"],
         )
 
         return img_original, img_masked, label
 
 
 class DataReader:
-    def __init__(self, base_path, set_type):
+    def __init__(self, base_path, set_type, config):
         self.base_path = base_path
         self.set_type = set_type
+        self.config = config
 
         self.feature_description = {
             "label": tf.io.FixedLenFeature([], tf.string),
@@ -101,7 +100,20 @@ class DataReader:
         tfrecord_path = os.path.join(self.base_path, f"{self.set_type}.tfrecords")
         processed_dataset = tf.data.TFRecordDataset(tfrecord_path)
         parsed_dataset = processed_dataset.map(self._parse_function)
-        self.data_set = parsed_dataset.map(parse_serialized_tensors)
+        self.data_set = parsed_dataset.map(self.parse_serialized_tensors)
+
+    def parse_serialized_tensors(self, example):
+        """Convert the serialized tensor back to a tensor."""
+        example["img_original"] = tf.reshape(example["img_original"], [])
+        example["img_masked"] = tf.reshape(example["img_masked"], [])
+
+        img_height = self.config['img_height']
+        img_width = self.config['img_width']
+        example["img_original"] = tf.ensure_shape(tf.io.parse_tensor(example["img_original"], out_type = tf.float32),
+                                                  (img_height, img_width, 3))
+        example["img_masked"] = tf.ensure_shape(tf.io.parse_tensor(example["img_masked"], out_type = tf.float32),
+                                                (img_height, img_width, 3))
+        return example
 
     def get_dataset(self) -> tf.data.TFRecordDataset:
         """Getter for the dataset."""
