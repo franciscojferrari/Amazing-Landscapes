@@ -78,10 +78,11 @@ class Model(tf.keras.Model):
     def kl_divergence_loss(self, mu, logvar):
         return -0.5 * tf.math.reduce_sum(1 + logvar - tf.math.pow(mu, 2) - tf.math.exp(logvar))
 
-    def compile(self, d_optimizer, g_optimizer, metrics = None):
+    def compile(self, d_optimizer, g_optimizer, config, metrics = None):
         super(Model, self).compile(metrics = metrics)
         self.d_optimizer = d_optimizer
         self.g_optimizer = g_optimizer
+        self.config = config
 
     def train_step(self, data):
         images = data['img_original']
@@ -101,15 +102,14 @@ class Model(tf.keras.Model):
             vgg_loss = self.vgg_loss((images, generated_image))
             feature_loss = self.feature_loss(real_logit, fake_logit)
 
-            vgg_weight = 5
-            lambda_ = 0.05
-            feature_loss_lambda = 10
+            vgg_weight = self.config['vgg_weight']  # 5
+            lambda_ = self.config['lambda_']  # 0.05
+            feature_loss_lambda = self.config['feature_loss_lambda']  # 10
 
             total_generator_loss = tf.math.scalar_mul(lambda_, kl_loss) \
                                    + generator_loss \
                                    + tf.math.scalar_mul(vgg_weight, vgg_loss) \
                                    + tf.math.scalar_mul(feature_loss_lambda, feature_loss)
-
         generator_gradients = generator_tape.gradient(
             total_generator_loss, (self.generator.trainable_variables + self.encoder.trainable_variables)
         )
