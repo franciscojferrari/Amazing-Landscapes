@@ -1,3 +1,5 @@
 vgg_weight: 8
 lambda_: 0.05
 feature_loss_lambda: 12
+img_height: 256
+img_width: 256

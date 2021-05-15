@@ -13,7 +13,6 @@ class LearningRateReducer(tf.keras.callbacks.Callback):
         self.total_epochs = total_epochs
 
     def on_epoch_end(self, epoch, logs = {}):
-
         if epoch == 1:
             self.init_lr_g = self.model.g_optimizer.lr.read_value()
             self.init_lr_d = self.model.d_optimizer.lr.read_value()
@@ -28,12 +27,16 @@ class LearningRateReducer(tf.keras.callbacks.Callback):
 
 
 class Model(tf.keras.Model):
-    def __init__(self, name = "model", **kwargs):
+    def __init__(self, name = "model", *args, **kwargs):
+        self.config = kwargs.pop("config", args[0] if args else None)
+
         super(Model, self).__init__(name = name, **kwargs)
 
         """Anna: fill in the None"""
+        image_size = (self.config['img_width'], self.config['img_height'])
+
         self.encoder = Encoder()
-        self.generator = SpadeGenerator(image_size = (256, 256))
+        self.generator = SpadeGenerator(image_size = image_size)
         # print("Generator")
         self.discriminator = Discriminator()
         # """Alex: Sampler and putting  everything together"""
@@ -78,11 +81,10 @@ class Model(tf.keras.Model):
     def kl_divergence_loss(self, mu, logvar):
         return -0.5 * tf.math.reduce_sum(1 + logvar - tf.math.pow(mu, 2) - tf.math.exp(logvar))
 
-    def compile(self, d_optimizer, g_optimizer, config, metrics = None):
+    def compile(self, d_optimizer, g_optimizer, metrics = None):
         super(Model, self).compile(metrics = metrics)
         self.d_optimizer = d_optimizer
         self.g_optimizer = g_optimizer
-        self.config = config
 
     def train_step(self, data):
         images = data['img_original']

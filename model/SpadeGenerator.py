@@ -34,8 +34,8 @@ class SpadeGenerator(tfkl.Layer):
         aspect_ratio = 1
 
         sw = self.image_size[0] // (2 ** num_up_layers)
-        sh = round(sw / aspect_ratio)
-
+        # sh = round(sw / aspect_ratio)
+        sh = self.image_size[1] // (2 ** num_up_layers)
         return sw, sh
 
     def call(self, mask, *args, **kwargs):
