@@ -19,8 +19,8 @@ def calculate_miou(prediction, ground_truth):
     """
 
     # Denormalize images
-    prediction = denormalize_images(prediction)
-    ground_truth = denormalize_images(ground_truth)
+    #prediction = denormalize_images(prediction)
+    #ground_truth = denormalize_images(ground_truth)
 
     # Convert to grayscale images
     prediction = tf.image.rgb_to_grayscale(prediction)

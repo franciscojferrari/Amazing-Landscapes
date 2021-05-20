@@ -42,10 +42,10 @@ def calculate_fid(model, images1, images2):
 
 
 def run_fid(images1, images2):
-    model = InceptionV3(include_top = False, pooling = 'avg', input_shape = (256, 256, 3))
+    model = InceptionV3(include_top = False, pooling = 'avg')
 
     # Image1 and image2 should be tensor or numpy array with 3 color channels, with values in the range [0, 255]
     images1 = preprocess_input(images1)
     images2 = preprocess_input(images2)
-    fid = calculate_fid(model, images1, images1)
+    fid = calculate_fid(model, images1, images2)
     return fid
