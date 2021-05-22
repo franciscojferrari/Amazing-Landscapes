@@ -44,35 +44,26 @@ class Model(tf.keras.Model):
         self.vgg_loss = VGGLoss()
 
     def loss_discriminator(self, real, fake, loss_type = None):
-        loss = []
-        for i in range(len(fake)):
-            if loss_type == "hinge":
-                # Real loss
-                min_val = tf.math.minimum(real[i][-1] - 1, tf.zeros_like(real[i][-1]))
-                real_loss = - tf.reduce_mean(min_val)
-                # Fake loss.
-                min_val = tf.math.minimum(-fake[i][-1] - 1, tf.zeros_like(fake[i][-1]))
-                fake_loss = - tf.reduce_mean(min_val)
+        if loss_type == "hinge":
+            # Real loss
+            min_val = tf.math.minimum(real - 1, tf.zeros_like(real))
+            real_loss = - tf.reduce_mean(min_val)
+            # Fake loss.
+            min_val = tf.math.minimum(-fake - 1, tf.zeros_like(fake))
+            fake_loss = - tf.reduce_mean(min_val)
 
-            elif loss_type == "gan":
-                cross_entropy = tf.keras.losses.BinaryCrossentropy(from_logits = True)
-                real_loss = cross_entropy(tf.ones_like(real[i][-1]), real[i][-1])
-                fake_loss = cross_entropy(tf.zeros_like(fake[i][-1]), fake[i][-1])
-            loss.append(real_loss + fake_loss)
-
-        return tf.reduce_mean(loss)
+        elif loss_type == "gan":
+            cross_entropy = tf.keras.losses.BinaryCrossentropy(from_logits = True)
+            real_loss = cross_entropy(tf.ones_like(real), real)
+            fake_loss = cross_entropy(tf.zeros_like(fake), fake)
+        return real_loss + fake_loss
 
     def loss_generator(self, fake, loss_type = None):
-        loss = []
-        fake_loss = 0
-        for i in range(len(fake)):
-            if loss_type == "hinge":
-                fake_loss = - tf.reduce_mean(fake[i][-1])
-            elif loss_type == "gan":
-                cross_entropy = tf.keras.losses.BinaryCrossentropy(from_logits = True)
-                fake_loss = cross_entropy(tf.ones_like(fake[i][-1]), fake[i][-1])
-            loss.append(fake_loss)
-        return tf.reduce_mean(loss)
+        if loss_type == "hinge":
+            return - tf.reduce_mean(fake)
+        elif loss_type == "gan":
+            cross_entropy = tf.keras.losses.BinaryCrossentropy(from_logits = True)
+            return cross_entropy(tf.ones_like(fake), fake)
 
     def l1_loss(self, real, fake):
         return tf.reduce_mean(tf.abs(real - fake))
@@ -105,15 +96,15 @@ class Model(tf.keras.Model):
             z_noise_style = self.sampler((out_mu, out_var))
             generated_image = self.generator(masks, z_noise = z_noise_style)
 
-            _, fake_logit = self.discriminator(generated_image, masks)
-            _, real_logit = self.discriminator(images, masks)
+            fake_output, fake_logit = self.discriminator(generated_image, masks)
+            real_output, real_logit = self.discriminator(images, masks)
 
-            generator_loss = self.loss_generator(fake_logit, loss_type = "hinge")
+            generator_loss = self.loss_generator(fake_output, loss_type = "hinge")
             kl_loss = self.kl_divergence_loss(out_mu, out_var)
             vgg_loss = self.vgg_loss((images, generated_image))
             feature_loss = self.feature_loss(real_logit, fake_logit)
 
-            vgg_weight = self.config['vgg_weight']  # discriminator_loss5
+            vgg_weight = self.config['vgg_weight']  # 5
             lambda_ = self.config['lambda_']  # 0.05
             feature_loss_lambda = self.config['feature_loss_lambda']  # 10
 
@@ -133,10 +124,10 @@ class Model(tf.keras.Model):
             z_noise_style = self.sampler((out_mu, out_var))
             generated_image = self.generator(masks, z_noise = z_noise_style)
 
-            _, fake_logit = self.discriminator(images, masks)
-            _, real_logit = self.discriminator(generated_image, masks)
+            real_output, _ = self.discriminator(images, masks)
+            fake_output, _ = self.discriminator(generated_image, masks)
 
-            discriminator_loss = self.loss_discriminator(real_logit, fake_logit, loss_type = "hinge")
+            discriminator_loss = self.loss_discriminator(real_output, fake_output, loss_type = "hinge")
 
         discriminator_gradients = discriminator_tape.gradient(
             discriminator_loss, self.discriminator.trainable_variables

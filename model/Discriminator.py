@@ -73,7 +73,6 @@ class Discriminator(tfkl.Layer):
             feature_loss.append(x)
 
             out = self.output_layer(x)
-            feature_loss.append(out)
 
             final = tf.math.add(final, tf.math.reduce_mean(out, axis = (1, 2, 3)))
             D_logit.append(feature_loss)
