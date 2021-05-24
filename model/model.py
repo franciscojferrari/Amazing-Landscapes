@@ -133,8 +133,8 @@ class Model(tf.keras.Model):
             z_noise_style = self.sampler((out_mu, out_var))
             generated_image = self.generator(masks, z_noise = z_noise_style)
 
-            _, fake_logit = self.discriminator(images, masks)
-            _, real_logit = self.discriminator(generated_image, masks)
+            _, real_logit = self.discriminator(images, masks)
+            _, fake_logit = self.discriminator(generated_image, masks)
 
             discriminator_loss = self.loss_discriminator(real_logit, fake_logit, loss_type = "hinge")
 
