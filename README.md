@@ -18,7 +18,7 @@ pip install -r requirements.txt
 
 ### Training
 
-* The training of the network can be found in Training and Testing notebook in the notebooks folder
+* The training of the network can be found in Training and Testing notebook in the notebooks folder Amazing-Landscapes/notebooks/Training and Testing.ipynb
 
 ## Contributing
 
