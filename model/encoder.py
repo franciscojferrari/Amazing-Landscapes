@@ -20,7 +20,7 @@ class Encoder(tfkl.Layer):
         self.in5 = tfa.layers.InstanceNormalization(axis = 3)
         self.conv6 = tfkl.Conv2D(512, kernel_size = 3, strides = (2, 2), padding = 'same')
         self.in6 = tfa.layers.InstanceNormalization(axis = 3)
- 
+
         self.reshape = tfkl.Flatten()
 
         self.linear_mu = tfkl.Dense(256, activation = tfkl.LeakyReLU(alpha = 0.2))
